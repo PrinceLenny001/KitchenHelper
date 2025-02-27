@@ -2,19 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import { WidgetData } from '@/lib/types/dashboard';
+import { WidgetData, WidgetType } from '@/lib/types/dashboard';
 
-export const useDashboard = () => {
+export function useDashboard() {
   const [widgets, setWidgets] = useState<WidgetData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch widgets from the API
   const fetchWidgets = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
     try {
+      setIsLoading(true);
       const response = await fetch('/api/dashboard/widgets');
       
       if (!response.ok) {
@@ -23,10 +20,10 @@ export const useDashboard = () => {
       
       const data = await response.json();
       
-      // Transform the data from the API to match the WidgetData interface
+      // Transform the data to match our WidgetData interface
       const transformedWidgets: WidgetData[] = data.widgets.map((widget: any) => ({
         id: widget.id,
-        type: widget.type,
+        type: widget.type as WidgetType,
         title: widget.title,
         width: widget.width,
         height: widget.height,
@@ -36,52 +33,16 @@ export const useDashboard = () => {
       }));
       
       setWidgets(transformedWidgets);
+      setError(null);
     } catch (err) {
       console.error('Error fetching widgets:', err);
       setError('Failed to load dashboard widgets');
-      toast.error('Failed to load dashboard widgets');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Save widgets to the API
-  const saveWidgets = useCallback(async (updatedWidgets: WidgetData[]) => {
-    try {
-      // Transform the widgets to match the API expectations
-      const transformedWidgets = updatedWidgets.map(widget => ({
-        id: widget.id,
-        type: widget.type,
-        title: widget.title,
-        width: widget.width,
-        height: widget.height,
-        positionX: widget.x,
-        positionY: widget.y,
-        settings: JSON.stringify(widget.settings),
-      }));
-      
-      const response = await fetch('/api/dashboard/widgets', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ widgets: transformedWidgets }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to save widgets');
-      }
-      
-      setWidgets(updatedWidgets);
-      toast.success('Dashboard layout saved');
-    } catch (err) {
-      console.error('Error saving widgets:', err);
-      toast.error('Failed to save dashboard layout');
-    }
-  }, []);
-
-  // Add a new widget
-  const addWidget = useCallback(async (widget: Omit<WidgetData, 'id'>) => {
+  const addWidget = async (widget: Omit<WidgetData, 'id'>) => {
     try {
       const response = await fetch('/api/dashboard/widgets', {
         method: 'POST',
@@ -103,32 +64,30 @@ export const useDashboard = () => {
         throw new Error('Failed to add widget');
       }
       
-      const data = await response.json();
+      const newWidget = await response.json();
       
-      const newWidget: WidgetData = {
-        id: data.id,
-        type: widget.type,
-        title: widget.title,
-        width: widget.width,
-        height: widget.height,
-        x: widget.x,
-        y: widget.y,
-        settings: widget.settings,
+      // Transform the response to match our WidgetData interface
+      const transformedWidget: WidgetData = {
+        id: newWidget.id,
+        type: newWidget.type as WidgetType,
+        title: newWidget.title,
+        width: newWidget.width,
+        height: newWidget.height,
+        x: newWidget.positionX,
+        y: newWidget.positionY,
+        settings: newWidget.settings ? JSON.parse(newWidget.settings) : {},
       };
       
-      setWidgets(prev => [...prev, newWidget]);
-      toast.success('Widget added to dashboard');
-      
-      return newWidget;
+      setWidgets([...widgets, transformedWidget]);
+      toast.success('Widget added successfully');
     } catch (err) {
       console.error('Error adding widget:', err);
-      toast.error('Failed to add widget to dashboard');
-      return null;
+      toast.error('Failed to add widget');
+      throw err;
     }
-  }, []);
+  };
 
-  // Remove a widget
-  const removeWidget = useCallback(async (id: string) => {
+  const removeWidget = async (id: string) => {
     try {
       const response = await fetch(`/api/dashboard/widgets?id=${id}`, {
         method: 'DELETE',
@@ -138,23 +97,59 @@ export const useDashboard = () => {
         throw new Error('Failed to remove widget');
       }
       
-      setWidgets(prev => prev.filter(widget => widget.id !== id));
-      toast.success('Widget removed from dashboard');
-      return true;
+      setWidgets(widgets.filter(widget => widget.id !== id));
+      toast.success('Widget removed successfully');
     } catch (err) {
       console.error('Error removing widget:', err);
-      toast.error('Failed to remove widget from dashboard');
-      return false;
+      toast.error('Failed to remove widget');
+      throw err;
     }
-  }, []);
+  };
 
-  // Update widget layout
-  const updateLayout = useCallback((updatedWidgets: WidgetData[]) => {
+  const updateLayout = async (updatedWidgets: WidgetData[]) => {
+    try {
+      // Transform the widgets to match the API's expected format
+      const transformedWidgets = updatedWidgets.map(widget => ({
+        id: widget.id,
+        type: widget.type,
+        title: widget.title,
+        width: widget.width,
+        height: widget.height,
+        positionX: widget.x,
+        positionY: widget.y,
+        settings: JSON.stringify(widget.settings),
+      }));
+      
+      const response = await fetch('/api/dashboard/widgets', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          widgets: transformedWidgets,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update layout');
+      }
+      
+      setWidgets(updatedWidgets);
+    } catch (err) {
+      console.error('Error updating layout:', err);
+      toast.error('Failed to update layout');
+      throw err;
+    }
+  };
+  
+  const saveWidgets = (updatedWidgets: WidgetData[]) => {
     setWidgets(updatedWidgets);
-    saveWidgets(updatedWidgets);
-  }, [saveWidgets]);
+    updateLayout(updatedWidgets).catch(err => {
+      console.error('Error saving widgets:', err);
+      toast.error('Failed to save widget changes');
+    });
+  };
 
-  // Load widgets on mount
   useEffect(() => {
     fetchWidgets();
   }, [fetchWidgets]);
@@ -169,4 +164,4 @@ export const useDashboard = () => {
     updateLayout,
     saveWidgets,
   };
-}; 
+} 

@@ -1,8 +1,9 @@
 "use client";
 
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { WidgetComponentProps } from '@/lib/types/dashboard';
-import { Button } from '@/components/ui/Button';
+import { CustomButton } from '@/components/ui/CustomButton';
 import { User, UserPlus } from 'lucide-react';
 import { FamilyMember } from '@/lib/types/chores';
 
@@ -96,7 +97,7 @@ export function FamilyWidget({ widget, isEditing }: WidgetComponentProps) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-4">
         <p className="text-red-500 mb-2">{error}</p>
-        <Button size="sm" onClick={() => setError(null)}>Retry</Button>
+        <CustomButton size="sm" onClick={() => setError(null)}>Retry</CustomButton>
       </div>
     );
   }
@@ -106,10 +107,10 @@ export function FamilyWidget({ widget, isEditing }: WidgetComponentProps) {
       <div className="flex flex-col items-center justify-center h-full p-4">
         <p className="text-gray-500 dark:text-gray-400 mb-2">No family members added yet</p>
         {!isEditing && (
-          <Button size="sm">
+          <CustomButton size="sm">
             <UserPlus className="h-4 w-4 mr-2" />
             Add Family Member
-          </Button>
+          </CustomButton>
         )}
       </div>
     );
@@ -145,10 +146,10 @@ export function FamilyWidget({ widget, isEditing }: WidgetComponentProps) {
       
       {!isEditing && (
         <div className="mt-4 text-center">
-          <Button size="sm" variant="outline">
+          <CustomButton size="sm" variant="outline">
             <UserPlus className="h-4 w-4 mr-2" />
             Add Family Member
-          </Button>
+          </CustomButton>
         </div>
       )}
     </div>

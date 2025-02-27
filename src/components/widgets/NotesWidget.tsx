@@ -1,8 +1,10 @@
 "use client";
 
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { WidgetComponentProps } from '@/lib/types/dashboard';
-import { Button } from '@/components/ui/Button';
+import { CustomButton } from '@/components/ui/CustomButton';
+import { Textarea } from '@/components/ui/textarea';
 import { Save, Edit, Trash } from 'lucide-react';
 
 export function NotesWidget({ widget, isEditing }: WidgetComponentProps) {
@@ -67,7 +69,7 @@ export function NotesWidget({ widget, isEditing }: WidgetComponentProps) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-4">
         <p className="text-red-500 mb-2">{error}</p>
-        <Button size="sm" onClick={() => setError(null)}>Retry</Button>
+        <CustomButton size="sm" onClick={() => setError(null)}>Retry</CustomButton>
       </div>
     );
   }
@@ -107,7 +109,7 @@ export function NotesWidget({ widget, isEditing }: WidgetComponentProps) {
       </div>
       
       {isEditingNote && !isEditing ? (
-        <textarea
+        <Textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
           className="flex-1 w-full p-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-700"
@@ -127,9 +129,9 @@ export function NotesWidget({ widget, isEditing }: WidgetComponentProps) {
       
       {isEditingNote && !isEditing && (
         <div className="mt-2 flex justify-end">
-          <Button size="sm" onClick={handleSaveNote}>
+          <CustomButton size="sm" onClick={handleSaveNote}>
             Save
-          </Button>
+          </CustomButton>
         </div>
       )}
     </div>

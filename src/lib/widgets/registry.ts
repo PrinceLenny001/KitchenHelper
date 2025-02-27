@@ -1,29 +1,40 @@
-import { WidgetDefinition, WidgetType } from '../types/dashboard';
+import { WidgetDefinition, WidgetType } from '@/lib/types/dashboard';
 import { ChoresWidget } from '@/components/widgets/ChoresWidget';
 import { CalendarWidget } from '@/components/widgets/CalendarWidget';
 import { FamilyWidget } from '@/components/widgets/FamilyWidget';
 import { NotesWidget } from '@/components/widgets/NotesWidget';
+import { CheckSquare, Calendar, Users, StickyNote } from 'lucide-react';
 
-class WidgetRegistryClass {
-  private widgets: Map<WidgetType, WidgetDefinition> = new Map();
+export class WidgetRegistry {
+  private static instance: WidgetRegistry;
+  private widgets: Map<WidgetType, WidgetDefinition>;
 
-  registerWidget(widget: WidgetDefinition) {
+  private constructor() {
+    this.widgets = new Map();
+  }
+
+  public static getInstance(): WidgetRegistry {
+    if (!WidgetRegistry.instance) {
+      WidgetRegistry.instance = new WidgetRegistry();
+    }
+    return WidgetRegistry.instance;
+  }
+
+  public registerWidget(widget: WidgetDefinition): void {
     this.widgets.set(widget.type, widget);
   }
 
-  getWidget(type: WidgetType): WidgetDefinition | undefined {
+  public getWidget(type: WidgetType): WidgetDefinition | undefined {
     return this.widgets.get(type);
   }
 
-  getAllWidgets(): WidgetDefinition[] {
+  public getAllWidgets(): WidgetDefinition[] {
     return Array.from(this.widgets.values());
   }
 }
 
-export const WidgetRegistry = new WidgetRegistryClass();
-
 // Register built-in widgets
-WidgetRegistry.registerWidget({
+WidgetRegistry.getInstance().registerWidget({
   type: 'chores',
   name: 'Chores',
   description: 'Display and manage your chores',
@@ -32,6 +43,7 @@ WidgetRegistry.registerWidget({
   minWidth: 2,
   minHeight: 2,
   component: ChoresWidget,
+  icon: CheckSquare,
   defaultSettings: {
     showCompleted: false,
     familyMemberId: null,
@@ -39,7 +51,7 @@ WidgetRegistry.registerWidget({
   },
 });
 
-WidgetRegistry.registerWidget({
+WidgetRegistry.getInstance().registerWidget({
   type: 'calendar',
   name: 'Calendar',
   description: 'View your calendar with events, chores, and routines',
@@ -48,6 +60,7 @@ WidgetRegistry.registerWidget({
   minWidth: 3,
   minHeight: 3,
   component: CalendarWidget,
+  icon: Calendar,
   defaultSettings: {
     showChores: true,
     showRoutines: true,
@@ -55,7 +68,7 @@ WidgetRegistry.registerWidget({
   },
 });
 
-WidgetRegistry.registerWidget({
+WidgetRegistry.getInstance().registerWidget({
   type: 'family',
   name: 'Family Members',
   description: 'View and manage your family members',
@@ -64,13 +77,14 @@ WidgetRegistry.registerWidget({
   minWidth: 2,
   minHeight: 2,
   component: FamilyWidget,
+  icon: Users,
   defaultSettings: {
     showAvatars: true,
     showBirthdays: true,
   },
 });
 
-WidgetRegistry.registerWidget({
+WidgetRegistry.getInstance().registerWidget({
   type: 'notes',
   name: 'Notes',
   description: 'Quick notes and reminders',
@@ -79,6 +93,7 @@ WidgetRegistry.registerWidget({
   minWidth: 2,
   minHeight: 2,
   component: NotesWidget,
+  icon: StickyNote,
   defaultSettings: {
     title: 'Quick Notes',
     note: '',

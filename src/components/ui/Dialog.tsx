@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
-import { Button } from './button';
+import { CustomButton } from './CustomButton';
 
 interface DialogProps {
   open: boolean;
@@ -55,7 +55,7 @@ export const Dialog: React.FC<DialogProps> = ({
         className={`relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <Button
+        <CustomButton
           variant="ghost"
           size="icon"
           className="absolute right-4 top-4"
@@ -63,7 +63,7 @@ export const Dialog: React.FC<DialogProps> = ({
         >
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
-        </Button>
+        </CustomButton>
 
         {children}
       </div>

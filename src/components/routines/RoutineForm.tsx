@@ -5,11 +5,14 @@ import { useRoutine } from '@/lib/context/RoutineContext';
 import { useFamilyMember } from '@/lib/context/FamilyMemberContext';
 import { Routine, RoutineStep } from '@/hooks/useRoutinesApi';
 import { RecurrencePattern } from '@/hooks/useChoresApi';
-import { Button } from '@/components/ui/button';
+import { CustomButton } from '@/components/ui/CustomButton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'react-toastify';
 import { Plus, Trash, ArrowUp, ArrowDown } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
 interface StepInput {
   description: string;
@@ -331,7 +334,7 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Steps*
           </label>
-          <Button
+          <CustomButton
             type="button"
             onClick={addStep}
             variant="outline"
@@ -339,7 +342,7 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
             className="flex items-center"
           >
             <Plus className="h-4 w-4 mr-1" /> Add Step
-          </Button>
+          </CustomButton>
         </div>
         
         {errors.steps && <p className="mt-1 text-sm text-red-500 mb-2">{errors.steps}</p>}
@@ -390,13 +393,13 @@ export const RoutineForm: React.FC<RoutineFormProps> = ({
       
       <div className="flex justify-end space-x-3 pt-4">
         {onClose && (
-          <Button type="button" onClick={onClose} variant="outline">
+          <CustomButton type="button" onClick={onClose} variant="outline">
             Cancel
-          </Button>
+          </CustomButton>
         )}
-        <Button type="submit">
+        <CustomButton type="submit">
           {routine ? 'Update Routine' : 'Create Routine'}
-        </Button>
+        </CustomButton>
       </div>
     </form>
   );

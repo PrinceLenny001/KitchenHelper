@@ -32,89 +32,77 @@ const widgetUpdateSchema = z.object({
 type ValidatedWidgetUpdate = z.infer<typeof widgetUpdateSchema>;
 
 // GET /api/dashboard/widgets - Get all widgets for the current user
-export async function GET(request: NextRequest) {
+export async function GET(req: NextRequest) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get user
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
+      select: { id: true },
     });
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Get widgets
-    // @ts-ignore - Prisma client has been generated with the DashboardWidget model
     const widgets = await prisma.dashboardWidget.findMany({
       where: { userId: user.id },
-      orderBy: [
-        { positionY: 'asc' },
-        { positionX: 'asc' },
-      ],
+      orderBy: { positionY: 'asc' },
     });
     
     return NextResponse.json({ widgets });
   } catch (error) {
     console.error('Error fetching widgets:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch widgets' },
       { status: 500 }
     );
   }
 }
 
 // POST /api/dashboard/widgets - Create a new widget
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get user
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
+      select: { id: true },
     });
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Parse and validate request body
-    const body = await request.json();
+    const body = await req.json();
     
-    const validationResult = widgetCreateSchema.safeParse(body);
+    const { type, title, width, height, positionX, positionY, settings } = body;
     
-    if (!validationResult.success) {
+    if (!type || !title) {
       return NextResponse.json(
-        { error: 'Invalid widget data', details: validationResult.error.format() },
+        { error: 'Type and title are required' },
         { status: 400 }
       );
     }
     
-    const { type, title, width, height, positionX, positionY, settings } = validationResult.data;
-    
-    // Create widget
-    // @ts-ignore - Prisma client has been generated with the DashboardWidget model
     const widget = await prisma.dashboardWidget.create({
       data: {
         userId: user.id,
         type,
         title,
-        width,
-        height,
-        positionX,
-        positionY,
-        settings,
+        width: width || 1,
+        height: height || 1,
+        positionX: positionX || 0,
+        positionY: positionY || 0,
+        settings: settings || '{}',
       },
     });
     
@@ -122,137 +110,89 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating widget:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to create widget' },
       { status: 500 }
     );
   }
 }
 
-// PUT /api/dashboard/widgets - Update multiple widgets
-export async function PUT(request: NextRequest) {
+// PUT /api/dashboard/widgets - Update widgets
+export async function PUT(req: NextRequest) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get user
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
+      select: { id: true },
     });
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Parse and validate request body
-    const body = await request.json();
+    const body = await req.json();
     
     if (!body.widgets || !Array.isArray(body.widgets)) {
       return NextResponse.json(
-        { error: 'Invalid request body, expected widgets array' },
+        { error: 'Widgets array is required' },
         { status: 400 }
       );
     }
     
-    // Validate each widget
-    const validationResults = body.widgets.map((widget: any) => 
-      widgetUpdateSchema.safeParse(widget)
-    );
-    
-    // @ts-ignore - We know the type is z.SafeParseReturnType<any, any>
-    const invalidWidgets = validationResults.filter((result) => !result.success);
-    
-    if (invalidWidgets.length > 0) {
-      return NextResponse.json(
-        { 
-          error: 'Invalid widget data', 
-          // @ts-ignore - We know these are errors
-          details: invalidWidgets.map((result) => 
-            result.error.format()
-          ) 
-        },
-        { status: 400 }
-      );
-    }
-    
-    // Get valid widgets
-    // @ts-ignore - We know the type is z.SafeParseReturnType<any, any>
-    const validWidgets = validationResults
-      .filter((result: any): result is z.SafeParseSuccess<ValidatedWidgetUpdate> => result.success)
-      // @ts-ignore - We know the type is z.SafeParseSuccess<ValidatedWidgetUpdate>
-      .map((result) => result.data);
-    
-    // Verify all widgets belong to the user
-    const widgetIds = validWidgets.map((widget: ValidatedWidgetUpdate) => widget.id);
-    
-    // @ts-ignore - Prisma client has been generated with the DashboardWidget model
-    const existingWidgets = await prisma.dashboardWidget.findMany({
-      where: {
-        id: { in: widgetIds },
-        userId: user.id,
-      },
-    });
-    
-    if (existingWidgets.length !== widgetIds.length) {
-      return NextResponse.json(
-        { error: 'One or more widgets not found or do not belong to the user' },
-        { status: 404 }
-      );
-    }
-    
-    // Update widgets
-    const updatePromises = validWidgets.map((widget: ValidatedWidgetUpdate) => 
-      // @ts-ignore - Prisma client has been generated with the DashboardWidget model
-      prisma.dashboardWidget.update({
-        where: { id: widget.id },
-        data: {
-          type: widget.type,
-          title: widget.title,
-          width: widget.width,
-          height: widget.height,
-          positionX: widget.positionX,
-          positionY: widget.positionY,
-          settings: widget.settings,
-        },
+    // Update each widget in a transaction
+    await prisma.$transaction(
+      body.widgets.map((widget: any) => {
+        return prisma.dashboardWidget.update({
+          where: {
+            id: widget.id,
+            userId: user.id, // Ensure the widget belongs to the user
+          },
+          data: {
+            type: widget.type,
+            title: widget.title,
+            width: widget.width,
+            height: widget.height,
+            positionX: widget.positionX,
+            positionY: widget.positionY,
+            settings: widget.settings,
+          },
+        });
       })
     );
-    
-    await Promise.all(updatePromises);
     
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating widgets:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to update widgets' },
       { status: 500 }
     );
   }
 }
 
-// DELETE /api/dashboard/widgets?id={id} - Delete a widget
-export async function DELETE(request: NextRequest) {
+// DELETE /api/dashboard/widgets?id=... - Delete a widget
+export async function DELETE(req: NextRequest) {
   try {
-    // Check authentication
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get user
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
+      select: { id: true },
     });
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Get widget ID from query params
-    const url = new URL(request.url);
+    const url = new URL(req.url);
     const id = url.searchParams.get('id');
     
     if (!id) {
@@ -262,37 +202,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    // Check if widget exists and belongs to the user
-    // @ts-ignore - Prisma client has been generated with the DashboardWidget model
-    const widget = await prisma.dashboardWidget.findUnique({
-      where: { id },
-    });
-    
-    if (!widget) {
-      return NextResponse.json(
-        { error: 'Widget not found' },
-        { status: 404 }
-      );
-    }
-    
-    if (widget.userId !== user.id) {
-      return NextResponse.json(
-        { error: 'Widget does not belong to the user' },
-        { status: 403 }
-      );
-    }
-    
-    // Delete widget
-    // @ts-ignore - Prisma client has been generated with the DashboardWidget model
     await prisma.dashboardWidget.delete({
-      where: { id },
+      where: {
+        id,
+        userId: user.id, // Ensure the widget belongs to the user
+      },
     });
     
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting widget:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to delete widget' },
       { status: 500 }
     );
   }

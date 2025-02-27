@@ -3,7 +3,7 @@
 import React from 'react';
 import { useRoutine } from '@/lib/context/RoutineContext';
 import { Routine } from '@/hooks/useRoutinesApi';
-import { Button } from '@/components/ui/button';
+import { CustomButton } from '@/components/ui/CustomButton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs';
 import { Plus, Check, Clock, Calendar } from 'lucide-react';
 
@@ -54,14 +54,14 @@ export const RoutineList: React.FC<RoutineListProps> = ({
               </p>
             )}
           </div>
-          <Button
+          <CustomButton
             variant="ghost"
             size="sm"
             onClick={() => onEditClick(routine)}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             Edit
-          </Button>
+          </CustomButton>
         </div>
 
         <div className="mt-4 flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
@@ -110,10 +110,10 @@ export const RoutineList: React.FC<RoutineListProps> = ({
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold">Routines</h2>
-        <Button onClick={onCreateClick} className="flex items-center gap-2">
+        <CustomButton onClick={onCreateClick} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           New Routine
-        </Button>
+        </CustomButton>
       </div>
 
       <Tabs defaultValue="active" className="w-full">

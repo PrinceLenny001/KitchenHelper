@@ -1,14 +1,14 @@
 import { ReactNode } from 'react';
+import { LucideIcon } from 'lucide-react';
 
 // Widget types
 export type WidgetType = 
-  | 'chores'
   | 'calendar'
   | 'weather'
-  | 'shopping'
+  | 'chores'
+  | 'clock'
   | 'family'
-  | 'notes'
-  | 'routines';
+  | 'notes';
 
 // Widget data structure
 export interface WidgetData {
@@ -19,7 +19,7 @@ export interface WidgetData {
   height: number;
   x: number;
   y: number;
-  settings?: Record<string, any>;
+  settings: Record<string, any>;
 }
 
 // Widget definition for registry
@@ -31,23 +31,24 @@ export interface WidgetDefinition {
   defaultHeight: number;
   minWidth: number;
   minHeight: number;
-  maxWidth?: number;
-  maxHeight?: number;
+  defaultSettings: Record<string, any>;
   component: React.ComponentType<WidgetComponentProps>;
   settingsComponent?: React.ComponentType<WidgetSettingsProps>;
-  defaultSettings?: Record<string, any>;
+  icon: LucideIcon;
 }
 
 // Props for widget components
 export interface WidgetComponentProps {
   widget: WidgetData;
   isEditing: boolean;
+  onSettingsChange?: (settings: Record<string, any>) => void;
 }
 
 // Props for widget settings components
 export interface WidgetSettingsProps {
   settings: Record<string, any>;
   onSettingsChange: (settings: Record<string, any>) => void;
+  onClose: () => void;
 }
 
 // Dashboard layout

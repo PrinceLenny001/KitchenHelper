@@ -1,32 +1,24 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Settings, X, Maximize2, Minimize2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { WidgetData } from '@/lib/types/dashboard';
 import { WidgetRegistry } from '@/lib/widgets/registry';
+import { X as XIcon, Settings as SettingsIcon, Maximize as MaximizeIcon, Minimize as MinimizeIcon } from 'lucide-react';
 
-interface WidgetProps {
+export interface WidgetProps {
   widget: WidgetData;
   isActive: boolean;
-  onResize?: (size: { width: number; height: number }) => void;
-  onSettingsChange: (settings: Record<string, any>) => void;
-  onRemove?: () => void;
-  editable?: boolean;
+  onResize: (id: string, width: number, height: number) => void;
+  onSettingsChange: (id: string, settings: Record<string, any>) => void;
+  onRemove: (id: string) => void;
+  editable: boolean;
 }
 
-export const Widget: React.FC<WidgetProps> = ({
-  widget,
-  isActive,
-  onResize,
-  onSettingsChange,
-  onRemove,
-  editable = false,
-}) => {
+export function Widget({ widget, isActive, onResize, onSettingsChange, onRemove, editable }: WidgetProps) {
   const [showSettings, setShowSettings] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   
   const {
     attributes,
@@ -34,128 +26,176 @@ export const Widget: React.FC<WidgetProps> = ({
     setNodeRef,
     transform,
     transition,
+    isDragging,
   } = useSortable({
     id: widget.id,
-    disabled: !editable,
+    disabled: !editable || showSettings,
   });
   
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    gridColumn: `span ${widget.width} / span ${widget.width}`,
+    gridRow: `span ${widget.height} / span ${widget.height}`,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.8 : 1,
   };
   
-  const widgetDefinition = WidgetRegistry.getWidget(widget.type);
+  const widgetDef = WidgetRegistry.getInstance().getWidget(widget.type);
   
-  if (!widgetDefinition) {
+  if (!widgetDef) {
     return (
       <div
         ref={setNodeRef}
         style={style}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 border border-red-500"
       >
-        <div className="text-red-500">Unknown widget type: {widget.type}</div>
+        <div className="text-red-500 font-semibold">Unknown widget type: {widget.type}</div>
       </div>
     );
   }
   
-  const WidgetComponent = widgetDefinition.component;
-  const SettingsComponent = widgetDefinition.settingsComponent;
+  const WidgetComponent = widgetDef.component;
+  const SettingsComponent = widgetDef.settingsComponent;
   
-  const handleToggleExpand = () => {
-    setIsExpanded(!isExpanded);
-    
-    if (onResize) {
-      if (!isExpanded) {
-        // Expand to full width and double height
-        onResize({ width: 12, height: widget.height * 2 });
-      } else {
-        // Restore original size
-        onResize({ width: widgetDefinition.defaultWidth, height: widgetDefinition.defaultHeight });
-      }
+  const handleIncreaseWidth = () => {
+    if (widget.width < 12) {
+      onResize(widget.id, widget.width + 1, widget.height);
     }
   };
   
-  const expandedClass = isExpanded
-    ? 'col-span-full row-span-2'
-    : `col-span-${widget.width} row-span-${widget.height}`;
+  const handleDecreaseWidth = () => {
+    if (widget.width > widgetDef.minWidth) {
+      onResize(widget.id, widget.width - 1, widget.height);
+    }
+  };
+  
+  const handleIncreaseHeight = () => {
+    onResize(widget.id, widget.width, widget.height + 1);
+  };
+  
+  const handleDecreaseHeight = () => {
+    if (widget.height > widgetDef.minHeight) {
+      onResize(widget.id, widget.width, widget.height - 1);
+    }
+  };
+  
+  const toggleSettings = () => {
+    setShowSettings(!showSettings);
+  };
+  
+  const handleSettingsChange = (newSettings: Record<string, any>) => {
+    onSettingsChange(widget.id, newSettings);
+  };
   
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden flex flex-col ${expandedClass} ${
-        isActive ? 'ring-2 ring-blue-500 z-10' : ''
-      }`}
-      {...attributes}
+      className={`
+        bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden
+        ${isActive ? 'ring-2 ring-blue-500' : ''}
+        ${editable ? 'cursor-grab' : ''}
+        ${isDragging ? 'cursor-grabbing' : ''}
+      `}
     >
-      {/* Widget Header */}
       <div
-        className={`flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 ${
-          editable ? 'cursor-move' : ''
-        }`}
-        {...(editable ? listeners : {})}
+        className={`
+          flex items-center justify-between px-3 py-2 bg-gray-100 dark:bg-gray-700
+          ${editable ? 'cursor-grab' : ''}
+        `}
+        {...(editable ? { ...attributes, ...listeners } : {})}
       >
-        <h3 className="font-medium truncate">{widget.title}</h3>
+        <h3 className="font-medium text-sm truncate">{widget.title}</h3>
         
-        <div className="flex items-center space-x-1">
-          {SettingsComponent && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSettings(!showSettings)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        {editable && (
+          <div className="flex items-center space-x-1">
+            {SettingsComponent && (
+              <button
+                onClick={toggleSettings}
+                className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                <SettingsIcon className="w-4 h-4" />
+              </button>
+            )}
+            
+            <button
+              onClick={() => setIsResizing(!isResizing)}
+              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
-              <Settings className="h-4 w-4" />
-              <span className="sr-only">Settings</span>
-            </Button>
-          )}
-          
-          {onResize && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleToggleExpand}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              {isExpanded ? (
-                <Minimize2 className="h-4 w-4" />
+              {isResizing ? (
+                <MinimizeIcon className="w-4 h-4" />
               ) : (
-                <Maximize2 className="h-4 w-4" />
+                <MaximizeIcon className="w-4 h-4" />
               )}
-              <span className="sr-only">
-                {isExpanded ? 'Minimize' : 'Maximize'}
-              </span>
-            </Button>
-          )}
-          
-          {onRemove && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onRemove}
-              className="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
+            </button>
+            
+            <button
+              onClick={() => onRemove(widget.id)}
+              className="p-1 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400"
             >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Remove</span>
-            </Button>
-          )}
-        </div>
+              <XIcon className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
       
-      {/* Widget Content */}
-      <div className="flex-grow overflow-auto p-4">
+      {isResizing && editable && (
+        <div className="flex justify-between p-2 bg-gray-50 dark:bg-gray-750 border-b border-gray-200 dark:border-gray-600">
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Width:</span>
+            <button
+              onClick={handleDecreaseWidth}
+              disabled={widget.width <= widgetDef.minWidth}
+              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+            >
+              -
+            </button>
+            <span className="text-xs">{widget.width}</span>
+            <button
+              onClick={handleIncreaseWidth}
+              disabled={widget.width >= 12}
+              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+            >
+              +
+            </button>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400">Height:</span>
+            <button
+              onClick={handleDecreaseHeight}
+              disabled={widget.height <= widgetDef.minHeight}
+              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+            >
+              -
+            </button>
+            <span className="text-xs">{widget.height}</span>
+            <button
+              onClick={handleIncreaseHeight}
+              className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      )}
+      
+      <div className="p-3 h-full">
         {showSettings && SettingsComponent ? (
           <SettingsComponent
             settings={widget.settings}
-            onSettingsChange={onSettingsChange}
+            onSettingsChange={handleSettingsChange}
+            onClose={toggleSettings}
           />
         ) : (
           <WidgetComponent
-            data={widget}
-            onSettingsChange={onSettingsChange}
+            widget={widget}
+            isEditing={editable}
+            onSettingsChange={(settings) => handleSettingsChange(settings)}
           />
         )}
       </div>
     </div>
   );
-}; 
+} 

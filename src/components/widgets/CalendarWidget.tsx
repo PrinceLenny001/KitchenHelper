@@ -2,141 +2,95 @@
 
 import { useState, useEffect } from 'react';
 import { WidgetComponentProps } from '@/lib/types/dashboard';
-import { Button } from '@/components/ui/Button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarIcon, XIcon } from 'lucide-react';
 
-interface CalendarEvent {
+interface Event {
   id: string;
   title: string;
-  date: Date;
-  type: 'chore' | 'routine' | 'event';
+  start: string;
+  end: string;
+  allDay?: boolean;
 }
 
 export function CalendarWidget({ widget, isEditing }: WidgetComponentProps) {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get settings from widget or use defaults
-  const settings = widget.settings || {};
-  const showChores = settings.showChores !== false;
-  const showRoutines = settings.showRoutines !== false;
-  const showEvents = settings.showEvents !== false;
-  
   useEffect(() => {
-    const loadEvents = async () => {
+    const fetchEvents = async () => {
       try {
         setLoading(true);
+        const response = await fetch('/api/calendar/events?days=3');
         
-        // This would be replaced with actual API calls to fetch events
-        // For now, we'll use mock data
-        const mockEvents: CalendarEvent[] = [
-          {
-            id: '1',
-            title: 'Clean Kitchen',
-            date: new Date(currentDate.getFullYear(), currentDate.getMonth(), 15),
-            type: 'chore',
-          },
-          {
-            id: '2',
-            title: 'Morning Routine',
-            date: new Date(currentDate.getFullYear(), currentDate.getMonth(), 18),
-            type: 'routine',
-          },
-          {
-            id: '3',
-            title: 'Family Dinner',
-            date: new Date(currentDate.getFullYear(), currentDate.getMonth(), 20),
-            type: 'event',
-          },
-        ];
+        if (!response.ok) {
+          throw new Error('Failed to fetch events');
+        }
         
-        // Filter events based on settings
-        const filteredEvents = mockEvents.filter(event => {
-          if (event.type === 'chore' && !showChores) return false;
-          if (event.type === 'routine' && !showRoutines) return false;
-          if (event.type === 'event' && !showEvents) return false;
-          return true;
-        });
-        
-        setEvents(filteredEvents);
-        setError(null);
+        const data = await response.json();
+        setEvents(data.events || []);
       } catch (err) {
-        setError('Failed to load calendar events');
-        console.error(err);
+        console.error('Error fetching events:', err);
+        setError('Failed to load events');
       } finally {
         setLoading(false);
       }
     };
     
-    loadEvents();
-  }, [currentDate, showChores, showRoutines, showEvents]);
-  
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-  
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-  
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
-  
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
-  
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(currentDate);
-    const firstDayOfMonth = getFirstDayOfMonth(currentDate);
-    const days = [];
-    
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(<div key={`empty-${i}`} className="h-8 text-center text-gray-400"></div>);
+    if (!isEditing) {
+      fetchEvents();
+    } else {
+      // Show placeholder data in edit mode
+      setEvents([
+        { 
+          id: '1', 
+          title: 'Doctor Appointment', 
+          start: new Date(new Date().setHours(10, 0, 0, 0)).toISOString(), 
+          end: new Date(new Date().setHours(11, 0, 0, 0)).toISOString() 
+        },
+        { 
+          id: '2', 
+          title: 'School Pickup', 
+          start: new Date(new Date().setHours(15, 0, 0, 0)).toISOString(), 
+          end: new Date(new Date().setHours(15, 30, 0, 0)).toISOString() 
+        },
+        { 
+          id: '3', 
+          title: 'Family Dinner', 
+          start: new Date(new Date().setHours(18, 0, 0, 0)).toISOString(), 
+          end: new Date(new Date().setHours(19, 0, 0, 0)).toISOString() 
+        },
+      ]);
+      setLoading(false);
     }
+  }, [isEditing]);
+  
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+  
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+  };
+  
+  const groupEventsByDay = () => {
+    const grouped: Record<string, Event[]> = {};
     
-    // Add cells for each day of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-      const dayEvents = events.filter(event => 
-        event.date.getDate() === day &&
-        event.date.getMonth() === currentDate.getMonth() &&
-        event.date.getFullYear() === currentDate.getFullYear()
-      );
-      
-      const isToday = new Date().toDateString() === date.toDateString();
-      
-      days.push(
-        <div 
-          key={`day-${day}`} 
-          className={`h-8 text-center relative ${isToday ? 'bg-blue-100 dark:bg-blue-900/30 rounded-full' : ''}`}
-        >
-          <span className={`inline-block w-6 h-6 leading-6 ${isToday ? 'font-bold' : ''}`}>
-            {day}
-          </span>
-          {dayEvents.length > 0 && (
-            <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-              {dayEvents.map((event, index) => (
-                <div 
-                  key={event.id}
-                  className={`w-1.5 h-1.5 rounded-full mx-0.5 ${
-                    event.type === 'chore' ? 'bg-green-500' : 
-                    event.type === 'routine' ? 'bg-blue-500' : 'bg-purple-500'
-                  }`}
-                  title={event.title}
-                ></div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-    }
+    events.forEach(event => {
+      const day = new Date(event.start).toDateString();
+      if (!grouped[day]) {
+        grouped[day] = [];
+      }
+      grouped[day].push(event);
+    });
     
-    return days;
+    return Object.entries(grouped).map(([day, events]) => ({
+      day,
+      date: new Date(day),
+      events: events.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+    }));
   };
   
   if (loading) {
@@ -149,74 +103,45 @@ export function CalendarWidget({ widget, isEditing }: WidgetComponentProps) {
   
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-4">
-        <p className="text-red-500 mb-2">{error}</p>
-        <Button size="sm" onClick={() => setError(null)}>Retry</Button>
+      <div className="flex flex-col items-center justify-center h-full">
+        <XIcon className="text-red-500 mb-2" />
+        <p className="text-sm text-gray-500">{error}</p>
       </div>
     );
   }
   
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  if (events.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full">
+        <CalendarIcon className="text-blue-500 mb-2" />
+        <p className="text-sm text-gray-500">No upcoming events</p>
+      </div>
+    );
+  }
+  
+  const groupedEvents = groupEventsByDay();
   
   return (
-    <div className="h-full p-4">
-      <div className="flex justify-between items-center mb-4">
-        <button 
-          onClick={handlePrevMonth}
-          className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-        <h3 className="text-sm font-medium">
-          {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-        </h3>
-        <button 
-          onClick={handleNextMonth}
-          className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-7 gap-1 text-xs mb-1">
-        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-          <div key={day} className="text-center font-medium text-gray-500 dark:text-gray-400">
-            {day}
-          </div>
-        ))}
-      </div>
-      
-      <div className="grid grid-cols-7 gap-1 text-xs">
-        {renderCalendar()}
-      </div>
-      
-      {!isEditing && (
-        <div className="mt-2 text-xs">
-          <div className="flex items-center justify-center space-x-4">
-            {showChores && (
-              <div className="flex items-center">
-                <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div>
-                <span>Chores</span>
-              </div>
-            )}
-            {showRoutines && (
-              <div className="flex items-center">
-                <div className="w-2 h-2 rounded-full bg-blue-500 mr-1"></div>
-                <span>Routines</span>
-              </div>
-            )}
-            {showEvents && (
-              <div className="flex items-center">
-                <div className="w-2 h-2 rounded-full bg-purple-500 mr-1"></div>
-                <span>Events</span>
-              </div>
-            )}
-          </div>
+    <div className="h-full overflow-auto">
+      {groupedEvents.map(({ day, date, events }) => (
+        <div key={day} className="mb-4">
+          <h4 className="text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            {formatDate(date.toISOString())}
+          </h4>
+          <ul className="space-y-2">
+            {events.map((event) => (
+              <li key={event.id} className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <div className="flex justify-between items-start">
+                  <span className="text-sm font-medium">{event.title}</span>
+                  <span className="text-xs text-gray-500">
+                    {event.allDay ? 'All day' : formatTime(event.start)}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
+      ))}
     </div>
   );
 } 
