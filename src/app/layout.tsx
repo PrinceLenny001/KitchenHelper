@@ -6,10 +6,11 @@ import { Metadata } from "next";
 import ClientProvider from "@/components/ClientProvider";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ThemeAwareToast } from "@/components/theme/ThemeAwareToast";
+import { AppProviders } from "@/lib/context/AppProviders";
 
 export const metadata: Metadata = {
-  title: "",
-  description: "",
+  title: "Family Calendar",
+  description: "A family calendar application for a 32\" touchscreen display",
   icons: {
     icon: "/favicon.ico",
   },
@@ -26,7 +27,9 @@ export default function RootLayout({
         <ThemeProvider defaultTheme="system" enableSystem>
           <ClientProvider>
             <TRPCReactProvider>
-              {children}
+              <AppProviders>
+                {children}
+              </AppProviders>
               <ThemeAwareToast />
             </TRPCReactProvider>
           </ClientProvider>

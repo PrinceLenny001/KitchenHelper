@@ -22,6 +22,10 @@ model User {
   isAdmin        Boolean   @default(false)
   accounts       Account[]
   sessions       Session[]
+  familyMembers  FamilyMember[]
+  preferences    UserPreference?
+  chores         Chore[]
+  routines       Routine[]
 }
 
 model Account {
@@ -30,12 +34,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?
-  access_token      String?
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
   User              User    @relation(fields: [userId], references: [id])
 
@@ -68,4 +72,145 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model FamilyMember {
+  id                String             @id @default(cuid())
+  name              String
+  color             String             @default("#3B82F6") // Default blue color
+  image             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isDefault         Boolean            @default(false)
+  choreAssignments  ChoreAssignment[]
+  choreCompletions  ChoreCompletion[]
+  routineCompletions RoutineCompletion[]
+}
+
+model UserPreference {
+  id                   String   @id @default(cuid())
+  theme                String   @default("light") // light or dark
+  defaultView          String   @default("month") // month, week, day, agenda
+  startOfWeek          Int      @default(0) // 0 = Sunday, 1 = Monday, etc.
+  showWeekends         Boolean  @default(true)
+  defaultFamilyMember  String?  // ID of default family member
+  weatherUnit          String   @default("fahrenheit") // fahrenheit or celsius
+  screensaverTimeout   Int      @default(300) // seconds until screensaver activates
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Chore recurrence patterns
+enum RecurrencePattern {
+  DAILY
+  WEEKDAYS
+  WEEKENDS
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  CUSTOM
+  ONCE
+}
+
+// Chore priority levels
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// Chore model
+model Chore {
+  id                String             @id @default(cuid())
+  name              String
+  description       String?
+  recurrencePattern RecurrencePattern
+  customRecurrence  String?            // JSON string for custom recurrence rules
+  startDate         DateTime
+  endDate           DateTime?
+  priority          Priority           @default(MEDIUM)
+  estimatedMinutes  Int                @default(15)
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments       ChoreAssignment[]
+  completions       ChoreCompletion[]
+}
+
+// Chore assignment model
+model ChoreAssignment {
+  id             String       @id @default(cuid())
+  choreId        String
+  chore          Chore        @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  familyMemberId String
+  familyMember   FamilyMember @relation(fields: [familyMemberId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([choreId, familyMemberId])
+}
+
+// Chore completion model
+model ChoreCompletion {
+  id             String       @id @default(cuid())
+  choreId        String
+  chore          Chore        @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  familyMemberId String
+  familyMember   FamilyMember @relation(fields: [familyMemberId], references: [id], onDelete: Cascade)
+  completedAt    DateTime     @default(now())
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+// Routine model
+model Routine {
+  id               String             @id @default(cuid())
+  name             String
+  description      String?
+  recurrencePattern RecurrencePattern
+  customRecurrence String?            // JSON string for custom recurrence rules
+  startDate        DateTime
+  endDate          DateTime?
+  estimatedMinutes Int                @default(30)
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  userId           String
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steps            RoutineStep[]
+  completions      RoutineCompletion[]
+}
+
+// Routine step model
+model RoutineStep {
+  id               String   @id @default(cuid())
+  routineId        String
+  routine          Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  name             String
+  description      String?
+  order            Int
+  estimatedMinutes Int      @default(5)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// Routine completion model
+model RoutineCompletion {
+  id             String       @id @default(cuid())
+  routineId      String
+  routine        Routine      @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  familyMemberId String
+  familyMember   FamilyMember @relation(fields: [familyMemberId], references: [id], onDelete: Cascade)
+  completedAt    DateTime     @default(now())
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }

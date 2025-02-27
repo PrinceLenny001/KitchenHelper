@@ -23,6 +23,69 @@ body {
   @apply flex h-full min-h-screen w-full;
 }
 
+/* Text scaling classes */
+.text-scale-xs {
+  --text-scale: 0.85;
+}
+
+.text-scale-sm {
+  --text-scale: 0.925;
+}
+
+.text-scale-md {
+  --text-scale: 1;
+}
+
+.text-scale-lg {
+  --text-scale: 1.125;
+}
+
+.text-scale-xl {
+  --text-scale: 1.25;
+}
+
+/* Apply text scaling to all text elements */
+html {
+  font-size: calc(16px * var(--text-scale, 1));
+}
+
+/* High contrast mode for better visibility */
+.high-contrast {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --muted: 0 0% 90%;
+  --muted-foreground: 0 0% 20%;
+  --border: 0 0% 0%;
+  --input: 0 0% 90%;
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 90%;
+  --secondary-foreground: 0 0% 0%;
+  --accent: 0 0% 80%;
+  --accent-foreground: 0 0% 0%;
+  --destructive: 0 100% 30%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 0 0% 0%;
+}
+
+.dark.high-contrast {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --muted: 0 0% 20%;
+  --muted-foreground: 0 0% 90%;
+  --border: 0 0% 100%;
+  --input: 0 0% 20%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
+  --secondary: 0 0% 20%;
+  --secondary-foreground: 0 0% 100%;
+  --accent: 0 0% 30%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 100% 50%;
+  --destructive-foreground: 0 0% 0%;
+  --ring: 0 0% 100%;
+}
+
 .aspect-ratio-box {
   padding-top: 56.25%; /* 16:9 Aspect Ratio */
 }

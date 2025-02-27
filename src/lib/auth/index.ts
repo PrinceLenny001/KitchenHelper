@@ -6,6 +6,7 @@ import {
   type DefaultSession,
 } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
+import GoogleProvider from "next-auth/providers/google";
 
 export enum UserRole {
   user = "user",
@@ -71,6 +72,17 @@ export const authOptions: NextAuthOptions = {
       },
       from: process.env.EMAIL_FROM || "onboarding@resend.dev",
     }),
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      authorization: {
+        params: {
+          scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+          prompt: "consent",
+          access_type: "offline",
+        },
+      },
+    }),
   ],
   session: {
     strategy: "database",
@@ -102,7 +114,7 @@ export const authOptions: NextAuthOptions = {
         return false;
       }
     },
-    async session({ session, user }) {
+    async session({ session, user, token }) {
       try {
         return {
           ...session,
@@ -113,11 +125,19 @@ export const authOptions: NextAuthOptions = {
             login: user.login,
             isAdmin: user.isAdmin,
           },
+          accessToken: token.accessToken,
         };
       } catch (error) {
         console.error("Session callback error:", error);
         return session;
       }
+    },
+    async jwt({ token, account }) {
+      // Persist the OAuth access_token to the token right after signin
+      if (account) {
+        token.accessToken = account.access_token;
+      }
+      return token;
     },
   },
   pages: {
