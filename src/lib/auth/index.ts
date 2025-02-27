@@ -63,14 +63,14 @@ export const authOptions: NextAuthOptions = {
   providers: [
     EmailProvider({
       server: {
-        host: "smtp.resend.com",
-        port: 465,
+        host: process.env.EMAIL_SERVER_HOST || "smtp.resend.com",
+        port: Number(process.env.EMAIL_SERVER_PORT) || 587,
         auth: {
-          user: "resend",
-          pass: process.env.EMAIL_SERVER_PASSWORD,
+          user: process.env.EMAIL_SERVER_USER || "resend",
+          pass: process.env.RESEND_API_KEY || process.env.EMAIL_SERVER_PASSWORD,
         },
       },
-      from: process.env.EMAIL_FROM || "onboarding@resend.dev",
+      from: process.env.EMAIL_FROM,
     }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
