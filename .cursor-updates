@@ -62,3 +62,4 @@
   - Notes widget for quick notes and reminders
 - Added a dashboard page with widget management capabilities
 - Fixed TypeScript errors in the dashboard widgets API route by adding proper type annotations and using @ts-ignore comments where necessary
+- Fixed build error by adding the saveWidgets function to the return object of the useDashboard hook

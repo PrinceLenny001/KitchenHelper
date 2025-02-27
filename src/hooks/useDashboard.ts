@@ -30,10 +30,8 @@ export const useDashboard = () => {
         title: widget.title,
         width: widget.width,
         height: widget.height,
-        position: {
-          x: widget.positionX,
-          y: widget.positionY,
-        },
+        x: widget.positionX,
+        y: widget.positionY,
         settings: widget.settings ? JSON.parse(widget.settings) : {},
       }));
       
@@ -57,8 +55,8 @@ export const useDashboard = () => {
         title: widget.title,
         width: widget.width,
         height: widget.height,
-        positionX: widget.position.x,
-        positionY: widget.position.y,
+        positionX: widget.x,
+        positionY: widget.y,
         settings: JSON.stringify(widget.settings),
       }));
       
@@ -95,8 +93,8 @@ export const useDashboard = () => {
           title: widget.title,
           width: widget.width,
           height: widget.height,
-          positionX: widget.position.x,
-          positionY: widget.position.y,
+          positionX: widget.x,
+          positionY: widget.y,
           settings: JSON.stringify(widget.settings),
         }),
       });
@@ -113,7 +111,8 @@ export const useDashboard = () => {
         title: widget.title,
         width: widget.width,
         height: widget.height,
-        position: widget.position,
+        x: widget.x,
+        y: widget.y,
         settings: widget.settings,
       };
       
@@ -168,5 +167,6 @@ export const useDashboard = () => {
     addWidget,
     removeWidget,
     updateLayout,
+    saveWidgets,
   };
 }; 
