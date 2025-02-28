@@ -34,22 +34,14 @@ function SignInContent() {
     try {
       console.log("Submitting with callbackUrl:", callbackUrl);
       
-      // Pass the callback URL directly to signIn
-      const result = await signIn("email", { 
+      // Pass the callback URL directly to signIn with redirect: true
+      await signIn("email", { 
         email, 
         callbackUrl,
-        redirect: false // Handle redirect manually for debugging
+        redirect: true // Let NextAuth handle the redirect
       });
       
-      console.log("Sign in result:", result);
-      
-      if (result?.error) {
-        setError(`Error: ${result.error}`);
-        setIsLoading(false);
-      } else if (result?.url) {
-        // Manually redirect to the verification page
-        window.location.href = "/auth/verify";
-      }
+      // The page will be redirected by NextAuth, so we don't need to handle it here
     } catch (error) {
       console.error("Sign in error:", error);
       setError(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`);

@@ -35,37 +35,47 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // Get the session token with proper secret
-  const token = await getToken({ 
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET 
-  });
+  // Check for session cookie directly
+  const hasSessionCookie = request.cookies.has('next-auth.session-token') || 
+                          request.cookies.has('__Secure-next-auth.session-token');
   
-  console.log(`Middleware: Path: ${pathname}${search}, Token exists: ${!!token}`);
-  
-  // If there's no token and the path is not public
-  if (!token) {
-    // For API routes, return 401 Unauthorized
-    if (isApiRoute) {
-      console.log(`Middleware: API route without token: ${pathname}`);
-      return new NextResponse(
-        JSON.stringify({ success: false, message: 'Authentication required' }),
-        { status: 401, headers: { 'content-type': 'application/json' } }
-      );
+  // If there's a session cookie, try to get the token
+  if (hasSessionCookie) {
+    try {
+      // Get the session token with proper secret
+      const token = await getToken({ 
+        req: request,
+        secret: process.env.NEXTAUTH_SECRET 
+      });
+      
+      if (token) {
+        console.log(`Middleware: Authenticated access to: ${pathname} with token`);
+        return NextResponse.next();
+      }
+    } catch (error) {
+      console.error("Error getting token:", error);
     }
-    
-    // For regular routes, redirect to signin with the callback URL
-    console.log(`Middleware: Redirecting to signin with callback: ${pathname}`);
-    const url = new URL("/auth/signin", request.url);
-    url.searchParams.set("callbackUrl", pathname);
-    
-    console.log(`Middleware: Redirect URL: ${url.toString()}`);
-    return NextResponse.redirect(url);
   }
   
-  // If there's a token, allow access
-  console.log(`Middleware: Authenticated access to: ${pathname}`);
-  return NextResponse.next();
+  console.log(`Middleware: No valid session for: ${pathname}`);
+  
+  // If there's no valid session
+  if (isApiRoute) {
+    // For API routes, return 401 Unauthorized
+    console.log(`Middleware: API route without token: ${pathname}`);
+    return new NextResponse(
+      JSON.stringify({ success: false, message: 'Authentication required' }),
+      { status: 401, headers: { 'content-type': 'application/json' } }
+    );
+  }
+  
+  // For regular routes, redirect to signin with the callback URL
+  console.log(`Middleware: Redirecting to signin with callback: ${pathname}`);
+  const url = new URL("/auth/signin", request.url);
+  url.searchParams.set("callbackUrl", pathname);
+  
+  console.log(`Middleware: Redirect URL: ${url.toString()}`);
+  return NextResponse.redirect(url);
 }
 
 // Configure which paths the middleware should run on
