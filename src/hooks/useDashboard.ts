@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { WidgetData, WidgetType } from '@/lib/types/dashboard';
+import { fetchWithErrorHandling } from '@/lib/utils/fetch';
 
 export function useDashboard() {
   const [widgets, setWidgets] = useState<WidgetData[]>([]);
@@ -12,13 +13,11 @@ export function useDashboard() {
   const fetchWidgets = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/dashboard/widgets');
+      const data = await fetchWithErrorHandling('/api/dashboard/widgets');
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch widgets');
+      if (!data || !data.widgets) {
+        throw new Error('Invalid response format');
       }
-      
-      const data = await response.json();
       
       // Transform the data to match our WidgetData interface
       const transformedWidgets: WidgetData[] = data.widgets.map((widget: any) => ({
@@ -44,7 +43,7 @@ export function useDashboard() {
 
   const addWidget = async (widget: Omit<WidgetData, 'id'>) => {
     try {
-      const response = await fetch('/api/dashboard/widgets', {
+      const newWidget = await fetchWithErrorHandling('/api/dashboard/widgets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,11 +59,9 @@ export function useDashboard() {
         }),
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to add widget');
+      if (!newWidget) {
+        throw new Error('Invalid response format');
       }
-      
-      const newWidget = await response.json();
       
       // Transform the response to match our WidgetData interface
       const transformedWidget: WidgetData = {
@@ -82,26 +79,22 @@ export function useDashboard() {
       toast.success('Widget added successfully');
     } catch (err) {
       console.error('Error adding widget:', err);
-      toast.error('Failed to add widget');
+      toast.error(err instanceof Error ? err.message : 'Failed to add widget');
       throw err;
     }
   };
 
   const removeWidget = async (id: string) => {
     try {
-      const response = await fetch(`/api/dashboard/widgets?id=${id}`, {
+      await fetchWithErrorHandling(`/api/dashboard/widgets?id=${id}`, {
         method: 'DELETE',
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to remove widget');
-      }
       
       setWidgets(widgets.filter(widget => widget.id !== id));
       toast.success('Widget removed successfully');
     } catch (err) {
       console.error('Error removing widget:', err);
-      toast.error('Failed to remove widget');
+      toast.error(err instanceof Error ? err.message : 'Failed to remove widget');
       throw err;
     }
   };
@@ -120,7 +113,7 @@ export function useDashboard() {
         settings: JSON.stringify(widget.settings),
       }));
       
-      const response = await fetch('/api/dashboard/widgets', {
+      await fetchWithErrorHandling('/api/dashboard/widgets', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -130,14 +123,10 @@ export function useDashboard() {
         }),
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to update layout');
-      }
-      
       setWidgets(updatedWidgets);
     } catch (err) {
       console.error('Error updating layout:', err);
-      toast.error('Failed to update layout');
+      toast.error(err instanceof Error ? err.message : 'Failed to update layout');
       throw err;
     }
   };
@@ -146,7 +135,7 @@ export function useDashboard() {
     setWidgets(updatedWidgets);
     updateLayout(updatedWidgets).catch(err => {
       console.error('Error saving widgets:', err);
-      toast.error('Failed to save widget changes');
+      toast.error(err instanceof Error ? err.message : 'Failed to save widget changes');
     });
   };
 

@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { WidgetType } from '@/lib/types/dashboard';
+import { errorResponse, successResponse, handleApiError, safeParseJson } from '@/lib/utils/api';
 
 // Schema for widget creation
 const widgetCreateSchema = z.object({
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401);
     }
     
     const user = await prisma.user.findUnique({
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
     });
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return errorResponse('User not found', 404);
     }
     
     const widgets = await prisma.dashboardWidget.findMany({
@@ -54,13 +55,10 @@ export async function GET(req: NextRequest) {
       orderBy: { positionY: 'asc' },
     });
     
-    return NextResponse.json({ widgets });
+    return successResponse({ widgets });
   } catch (error) {
     console.error('Error fetching widgets:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch widgets' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -70,7 +68,7 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401);
     }
     
     const user = await prisma.user.findUnique({
@@ -79,40 +77,40 @@ export async function POST(req: NextRequest) {
     });
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return errorResponse('User not found', 404);
     }
     
-    const body = await req.json();
+    const body = await safeParseJson(req);
     
-    const { type, title, width, height, positionX, positionY, settings } = body;
-    
-    if (!type || !title) {
-      return NextResponse.json(
-        { error: 'Type and title are required' },
-        { status: 400 }
-      );
+    if (!body) {
+      return errorResponse('Invalid request body', 400);
     }
+    
+    // Validate with Zod
+    const result = widgetCreateSchema.safeParse(body);
+    if (!result.success) {
+      return errorResponse(`Validation error: ${result.error.message}`, 400);
+    }
+    
+    const { type, title, width, height, positionX, positionY, settings } = result.data;
     
     const widget = await prisma.dashboardWidget.create({
       data: {
         userId: user.id,
         type,
         title,
-        width: width || 1,
-        height: height || 1,
-        positionX: positionX || 0,
-        positionY: positionY || 0,
+        width,
+        height,
+        positionX,
+        positionY,
         settings: settings || '{}',
       },
     });
     
-    return NextResponse.json(widget, { status: 201 });
+    return successResponse(widget, 201);
   } catch (error) {
     console.error('Error creating widget:', error);
-    return NextResponse.json(
-      { error: 'Failed to create widget' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -122,7 +120,7 @@ export async function PUT(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401);
     }
     
     const user = await prisma.user.findUnique({
@@ -131,16 +129,13 @@ export async function PUT(req: NextRequest) {
     });
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return errorResponse('User not found', 404);
     }
     
-    const body = await req.json();
+    const body = await safeParseJson(req);
     
-    if (!body.widgets || !Array.isArray(body.widgets)) {
-      return NextResponse.json(
-        { error: 'Widgets array is required' },
-        { status: 400 }
-      );
+    if (!body || !body.widgets || !Array.isArray(body.widgets)) {
+      return errorResponse('Widgets array is required', 400);
     }
     
     // Update each widget in a transaction
@@ -164,13 +159,10 @@ export async function PUT(req: NextRequest) {
       })
     );
     
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     console.error('Error updating widgets:', error);
-    return NextResponse.json(
-      { error: 'Failed to update widgets' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -180,7 +172,7 @@ export async function DELETE(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return errorResponse('Unauthorized', 401);
     }
     
     const user = await prisma.user.findUnique({
@@ -189,17 +181,14 @@ export async function DELETE(req: NextRequest) {
     });
     
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return errorResponse('User not found', 404);
     }
     
     const url = new URL(req.url);
     const id = url.searchParams.get('id');
     
     if (!id) {
-      return NextResponse.json(
-        { error: 'Widget ID is required' },
-        { status: 400 }
-      );
+      return errorResponse('Widget ID is required', 400);
     }
     
     await prisma.dashboardWidget.delete({
@@ -209,12 +198,9 @@ export async function DELETE(req: NextRequest) {
       },
     });
     
-    return NextResponse.json({ success: true });
+    return successResponse({ success: true });
   } catch (error) {
     console.error('Error deleting widget:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete widget' },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 } 

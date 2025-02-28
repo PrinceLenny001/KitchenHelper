@@ -48,6 +48,7 @@
 - Added UI components for PageHeader and Tabs
 - Updated navigation to include the Chores page
 - Marked completed tasks in the task list
+- Added improved error handling for JSON parsing errors, including utility functions for safe JSON parsing and a global ErrorBoundary to catch and handle unexpected JSON parsing errors.
 
 ## Dashboard Customization Implementation
 
