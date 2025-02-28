@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { WidgetComponentProps } from '@/lib/types/dashboard';
 import { CalendarIcon, XIcon } from 'lucide-react';
-import { fetchWithErrorHandling } from '@/lib/utils/fetch';
 
 interface Event {
   id: string;
@@ -22,16 +21,17 @@ export function CalendarWidget({ widget, isEditing }: WidgetComponentProps) {
     const fetchEvents = async () => {
       try {
         setLoading(true);
-        const data = await fetchWithErrorHandling('/api/calendar/events?days=3');
+        const response = await fetch('/api/calendar/events?days=3');
         
-        if (!data || !Array.isArray(data.events)) {
-          throw new Error('Invalid response format');
+        if (!response.ok) {
+          throw new Error('Failed to fetch events');
         }
         
+        const data = await response.json();
         setEvents(data.events || []);
       } catch (err) {
         console.error('Error fetching events:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load events');
+        setError('Failed to load events');
       } finally {
         setLoading(false);
       }

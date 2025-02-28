@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 import { FamilyMemberSelector } from '@/components/family/FamilyMemberSelector';
 import { TouchButton } from '@/components/ui/TouchButton';
 
-export function Header() {
+export const Header: React.FC = () => {
   const { currentDate, view, goToNextPeriod, goToPrevPeriod, goToToday } = useCalendar();
   
   // Format the current date based on the view
@@ -25,22 +25,43 @@ export function Header() {
   };
   
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 py-4 px-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Kitchen Helper</h1>
-        </div>
-        <div className="flex items-center space-x-4">
-          <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </button>
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium">
-            JD
-          </div>
+    <div className="flex items-center justify-between w-full h-full px-6">
+      {/* Left: Date navigation */}
+      <div className="flex items-center space-x-4">
+        <TouchButton 
+          onClick={goToPrevPeriod}
+          className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          aria-label="Previous"
+        >
+          <ChevronLeft size={28} />
+        </TouchButton>
+        
+        <h1 className="text-2xl font-semibold">{getFormattedDate()}</h1>
+        
+        <TouchButton 
+          onClick={goToNextPeriod}
+          className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          aria-label="Next"
+        >
+          <ChevronRight size={28} />
+        </TouchButton>
+        
+        <TouchButton 
+          onClick={goToToday}
+          className="ml-2 px-4 py-2 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-colors"
+        >
+          Today
+        </TouchButton>
+      </div>
+      
+      {/* Right: Family member selection and time */}
+      <div className="flex items-center space-x-4">
+        <FamilyMemberSelector />
+        
+        <div className="text-xl font-medium">
+          {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
-    </header>
+    </div>
   );
-} 
+}; 

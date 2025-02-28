@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { WidgetData, WidgetType } from '@/lib/types/dashboard';
-import { fetchWithErrorHandling } from '@/lib/utils/fetch';
 
 export function useDashboard() {
   const [widgets, setWidgets] = useState<WidgetData[]>([]);
@@ -13,11 +12,13 @@ export function useDashboard() {
   const fetchWidgets = useCallback(async () => {
     try {
       setIsLoading(true);
-      const data = await fetchWithErrorHandling('/api/dashboard/widgets');
+      const response = await fetch('/api/dashboard/widgets');
       
-      if (!data || !data.widgets) {
-        throw new Error('Invalid response format');
+      if (!response.ok) {
+        throw new Error('Failed to fetch widgets');
       }
+      
+      const data = await response.json();
       
       // Transform the data to match our WidgetData interface
       const transformedWidgets: WidgetData[] = data.widgets.map((widget: any) => ({
@@ -28,7 +29,14 @@ export function useDashboard() {
         height: widget.height,
         x: widget.positionX,
         y: widget.positionY,
-        settings: widget.settings ? JSON.parse(widget.settings) : {},
+        settings: widget.settings ? (() => {
+          try {
+            return JSON.parse(widget.settings);
+          } catch (e) {
+            console.error(`Error parsing settings for widget ${widget.id}:`, e);
+            return {};
+          }
+        })() : {},
       }));
       
       setWidgets(transformedWidgets);
@@ -43,7 +51,7 @@ export function useDashboard() {
 
   const addWidget = async (widget: Omit<WidgetData, 'id'>) => {
     try {
-      const newWidget = await fetchWithErrorHandling('/api/dashboard/widgets', {
+      const response = await fetch('/api/dashboard/widgets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,9 +67,11 @@ export function useDashboard() {
         }),
       });
       
-      if (!newWidget) {
-        throw new Error('Invalid response format');
+      if (!response.ok) {
+        throw new Error('Failed to add widget');
       }
+      
+      const newWidget = await response.json();
       
       // Transform the response to match our WidgetData interface
       const transformedWidget: WidgetData = {
@@ -72,29 +82,40 @@ export function useDashboard() {
         height: newWidget.height,
         x: newWidget.positionX,
         y: newWidget.positionY,
-        settings: newWidget.settings ? JSON.parse(newWidget.settings) : {},
+        settings: newWidget.settings ? (() => {
+          try {
+            return JSON.parse(newWidget.settings);
+          } catch (e) {
+            console.error(`Error parsing settings for new widget ${newWidget.id}:`, e);
+            return {};
+          }
+        })() : {},
       };
       
       setWidgets([...widgets, transformedWidget]);
       toast.success('Widget added successfully');
     } catch (err) {
       console.error('Error adding widget:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to add widget');
+      toast.error('Failed to add widget');
       throw err;
     }
   };
 
   const removeWidget = async (id: string) => {
     try {
-      await fetchWithErrorHandling(`/api/dashboard/widgets?id=${id}`, {
+      const response = await fetch(`/api/dashboard/widgets?id=${id}`, {
         method: 'DELETE',
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to remove widget');
+      }
       
       setWidgets(widgets.filter(widget => widget.id !== id));
       toast.success('Widget removed successfully');
     } catch (err) {
       console.error('Error removing widget:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to remove widget');
+      toast.error('Failed to remove widget');
       throw err;
     }
   };
@@ -113,7 +134,7 @@ export function useDashboard() {
         settings: JSON.stringify(widget.settings),
       }));
       
-      await fetchWithErrorHandling('/api/dashboard/widgets', {
+      const response = await fetch('/api/dashboard/widgets', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -123,10 +144,14 @@ export function useDashboard() {
         }),
       });
       
+      if (!response.ok) {
+        throw new Error('Failed to update layout');
+      }
+      
       setWidgets(updatedWidgets);
     } catch (err) {
       console.error('Error updating layout:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to update layout');
+      toast.error('Failed to update layout');
       throw err;
     }
   };
@@ -135,7 +160,7 @@ export function useDashboard() {
     setWidgets(updatedWidgets);
     updateLayout(updatedWidgets).catch(err => {
       console.error('Error saving widgets:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to save widget changes');
+      toast.error('Failed to save widget changes');
     });
   };
 

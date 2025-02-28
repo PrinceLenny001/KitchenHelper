@@ -1,10 +1,9 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { WidgetType } from '@/lib/types/dashboard';
-import { errorResponse, successResponse, handleApiError, safeParseJson } from '@/lib/utils/api';
 
 // Schema for widget creation
 const widgetCreateSchema = z.object({
@@ -38,7 +37,7 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      return errorResponse('Unauthorized', 401);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const user = await prisma.user.findUnique({
@@ -47,7 +46,7 @@ export async function GET(req: NextRequest) {
     });
     
     if (!user) {
-      return errorResponse('User not found', 404);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
     const widgets = await prisma.dashboardWidget.findMany({
@@ -55,10 +54,13 @@ export async function GET(req: NextRequest) {
       orderBy: { positionY: 'asc' },
     });
     
-    return successResponse({ widgets });
+    return NextResponse.json({ widgets });
   } catch (error) {
     console.error('Error fetching widgets:', error);
-    return handleApiError(error);
+    return NextResponse.json(
+      { error: 'Failed to fetch widgets' },
+      { status: 500 }
+    );
   }
 }
 
@@ -68,7 +70,7 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      return errorResponse('Unauthorized', 401);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const user = await prisma.user.findUnique({
@@ -77,40 +79,62 @@ export async function POST(req: NextRequest) {
     });
     
     if (!user) {
-      return errorResponse('User not found', 404);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    const body = await safeParseJson(req);
+    const body = await req.json();
     
-    if (!body) {
-      return errorResponse('Invalid request body', 400);
+    const { type, title, width, height, positionX, positionY, settings } = body;
+    
+    if (!type || !title) {
+      return NextResponse.json(
+        { error: 'Type and title are required' },
+        { status: 400 }
+      );
     }
     
-    // Validate with Zod
-    const result = widgetCreateSchema.safeParse(body);
-    if (!result.success) {
-      return errorResponse(`Validation error: ${result.error.message}`, 400);
+    // Validate settings is valid JSON if provided
+    let settingsString = '{}';
+    if (settings) {
+      try {
+        // If settings is already a string, use it directly
+        if (typeof settings === 'string') {
+          // Verify it's valid JSON by parsing and stringifying
+          JSON.parse(settings);
+          settingsString = settings;
+        } else {
+          // If it's an object, stringify it
+          settingsString = JSON.stringify(settings);
+        }
+      } catch (error) {
+        console.error('Invalid settings JSON:', error);
+        return NextResponse.json(
+          { error: 'Invalid settings format' },
+          { status: 400 }
+        );
+      }
     }
-    
-    const { type, title, width, height, positionX, positionY, settings } = result.data;
     
     const widget = await prisma.dashboardWidget.create({
       data: {
         userId: user.id,
         type,
         title,
-        width,
-        height,
-        positionX,
-        positionY,
-        settings: settings || '{}',
+        width: width || 1,
+        height: height || 1,
+        positionX: positionX || 0,
+        positionY: positionY || 0,
+        settings: settingsString,
       },
     });
     
-    return successResponse(widget, 201);
+    return NextResponse.json(widget, { status: 201 });
   } catch (error) {
     console.error('Error creating widget:', error);
-    return handleApiError(error);
+    return NextResponse.json(
+      { error: 'Failed to create widget' },
+      { status: 500 }
+    );
   }
 }
 
@@ -120,7 +144,7 @@ export async function PUT(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      return errorResponse('Unauthorized', 401);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const user = await prisma.user.findUnique({
@@ -129,18 +153,41 @@ export async function PUT(req: NextRequest) {
     });
     
     if (!user) {
-      return errorResponse('User not found', 404);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    const body = await safeParseJson(req);
+    const body = await req.json();
     
-    if (!body || !body.widgets || !Array.isArray(body.widgets)) {
-      return errorResponse('Widgets array is required', 400);
+    if (!body.widgets || !Array.isArray(body.widgets)) {
+      return NextResponse.json(
+        { error: 'Widgets array is required' },
+        { status: 400 }
+      );
     }
     
     // Update each widget in a transaction
     await prisma.$transaction(
       body.widgets.map((widget: any) => {
+        // Validate settings is valid JSON if provided
+        let settingsString = widget.settings;
+        if (widget.settings) {
+          try {
+            // If settings is already a string, use it directly
+            if (typeof widget.settings === 'string') {
+              // Verify it's valid JSON by parsing and stringifying
+              JSON.parse(widget.settings);
+              settingsString = widget.settings;
+            } else {
+              // If it's an object, stringify it
+              settingsString = JSON.stringify(widget.settings);
+            }
+          } catch (error) {
+            console.error(`Invalid settings JSON for widget ${widget.id}:`, error);
+            // Use empty object as fallback
+            settingsString = '{}';
+          }
+        }
+
         return prisma.dashboardWidget.update({
           where: {
             id: widget.id,
@@ -153,16 +200,19 @@ export async function PUT(req: NextRequest) {
             height: widget.height,
             positionX: widget.positionX,
             positionY: widget.positionY,
-            settings: widget.settings,
+            settings: settingsString,
           },
         });
       })
     );
     
-    return successResponse({ success: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error updating widgets:', error);
-    return handleApiError(error);
+    return NextResponse.json(
+      { error: 'Failed to update widgets' },
+      { status: 500 }
+    );
   }
 }
 
@@ -172,7 +222,7 @@ export async function DELETE(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session?.user?.email) {
-      return errorResponse('Unauthorized', 401);
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const user = await prisma.user.findUnique({
@@ -181,14 +231,17 @@ export async function DELETE(req: NextRequest) {
     });
     
     if (!user) {
-      return errorResponse('User not found', 404);
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
     const url = new URL(req.url);
     const id = url.searchParams.get('id');
     
     if (!id) {
-      return errorResponse('Widget ID is required', 400);
+      return NextResponse.json(
+        { error: 'Widget ID is required' },
+        { status: 400 }
+      );
     }
     
     await prisma.dashboardWidget.delete({
@@ -198,9 +251,12 @@ export async function DELETE(req: NextRequest) {
       },
     });
     
-    return successResponse({ success: true });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting widget:', error);
-    return handleApiError(error);
+    return NextResponse.json(
+      { error: 'Failed to delete widget' },
+      { status: 500 }
+    );
   }
 } 
