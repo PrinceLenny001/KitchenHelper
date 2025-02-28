@@ -9,6 +9,38 @@ function ErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
+  // Get more detailed error message based on the error code
+  const getErrorMessage = (errorCode: string | null) => {
+    switch (errorCode) {
+      case "AccessDenied":
+        return "Access denied. You do not have permission to access this resource.";
+      case "Configuration":
+        return "There is a problem with the server configuration. Please contact support.";
+      case "Verification":
+        return "The verification link may have expired or already been used. Please request a new one.";
+      case "OAuthSignin":
+        return "Error in the OAuth sign-in process. Please try again.";
+      case "OAuthCallback":
+        return "Error in the OAuth callback process. Please try again.";
+      case "OAuthCreateAccount":
+        return "Could not create an OAuth account. Please try again.";
+      case "EmailCreateAccount":
+        return "Could not create an email account. Please try again.";
+      case "Callback":
+        return "Error in the authentication callback. Please try again.";
+      case "OAuthAccountNotLinked":
+        return "This email is already associated with another account. Please sign in using your original provider.";
+      case "EmailSignin":
+        return "Error sending the verification email. Please check your email address and try again.";
+      case "CredentialsSignin":
+        return "The credentials you provided are invalid. Please try again.";
+      case "SessionRequired":
+        return "You must be signed in to access this page.";
+      default:
+        return "An error occurred during authentication. Please try again.";
+    }
+  };
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-white to-neutral-50 dark:from-neutral-900 dark:to-neutral-950 px-4">
       <Link
@@ -25,10 +57,13 @@ function ErrorContent() {
             Authentication Error
           </h1>
           <p className="mt-3 text-neutral-600 dark:text-neutral-300">
-            {error === "AccessDenied"
-              ? "Access denied."
-              : "An error occurred during authentication. Please try again."}
+            {getErrorMessage(error)}
           </p>
+          {error && (
+            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
+              Error code: {error}
+            </p>
+          )}
         </div>
 
         <div className="flex justify-center">

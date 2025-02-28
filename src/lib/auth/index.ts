@@ -63,26 +63,32 @@ export const authOptions: NextAuthOptions = {
   providers: [
     EmailProvider({
       server: {
-        host: process.env.EMAIL_SERVER_HOST || "smtp.resend.com",
-        port: Number(process.env.EMAIL_SERVER_PORT) || 587,
+        host: process.env.EMAIL_SERVER_HOST || "smtp.gmail.com",
+        port: Number(process.env.EMAIL_SERVER_PORT) || 465,
         auth: {
-          user: process.env.EMAIL_SERVER_USER || "resend",
-          pass: process.env.RESEND_API_KEY || process.env.EMAIL_SERVER_PASSWORD,
+          user: process.env.EMAIL_SERVER_USER,
+          pass: process.env.EMAIL_SERVER_PASSWORD,
         },
+        secure: true, // Use SSL for Gmail
       },
       from: process.env.EMAIL_FROM,
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      authorization: {
-        params: {
-          scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
-          prompt: "consent",
-          access_type: "offline",
-        },
-      },
-    }),
+    // Only add Google provider if credentials are available
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            authorization: {
+              params: {
+                scope: "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/calendar.events",
+                prompt: "consent",
+                access_type: "offline",
+              },
+            },
+          }),
+        ]
+      : []),
   ],
   session: {
     strategy: "database",
@@ -116,17 +122,29 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, user, token }) {
       try {
-        return {
-          ...session,
-          user: {
-            ...session.user,
-            id: user.id,
-            role: user.role,
-            login: user.login,
-            isAdmin: user.isAdmin,
-          },
-          accessToken: token.accessToken,
-        };
+        // When using database sessions, token is undefined and we should use user
+        if (user) {
+          return {
+            ...session,
+            user: {
+              ...session.user,
+              id: user.id,
+              role: user.role,
+              login: user.login,
+              isAdmin: user.isAdmin,
+            },
+          };
+        }
+        
+        // When using JWT sessions, user is undefined and we should use token
+        if (token) {
+          return {
+            ...session,
+            ...(token.accessToken ? { accessToken: token.accessToken } : {}),
+          };
+        }
+        
+        return session;
       } catch (error) {
         console.error("Session callback error:", error);
         return session;

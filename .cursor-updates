@@ -63,8 +63,15 @@
 - Added dashboard page with widget management capabilities
 - Implemented widget resizing and settings management
 - Fixed build issues by creating a CustomButton component, updating imports, adding missing dependencies, and fixing widget registry icons.
-- Fixed email authentication by updating the EmailProvider configuration and environment variables to use Resend API properly.
+- Fixed email authentication by updating the Resend API configuration in .env file with consistent values for both EMAIL_SERVER_PASSWORD and RESEND_API_KEY.
 - Updated database configuration to connect to Supabase, adding both Prisma and Supabase clients for database access.
 - Fixed Supabase connection issues by correcting the database URL, adding error handling, and implementing fallback mechanisms for network issues.
 - Added Netlify build configuration with environment variable handling to ensure smooth deployment on Netlify and prevent build failures due to missing environment variables.
 - Fixed "Unexpected end of JSON input" error in dashboard widgets by adding robust error handling for JSON parsing in useDashboard hook and widget API routes.
+- Fixed database connection by adding proper Supabase PostgreSQL connection URLs to .env file and successfully created database schema.
+- Switched email authentication from Resend to Gmail SMTP, updating both .env configuration and NextAuth provider settings to support secure Gmail authentication.
+- Fixed NextAuth error handling by enhancing the auth error page with detailed error messages, making Google provider optional, and adding proper error components.
+- Fixed NextAuth session callback error by safely handling the token.accessToken property when it's undefined during email authentication.
+- Fixed authentication redirection issues by updating middleware with proper token handling and improving session callback to work correctly with database sessions.
+- Fixed callback URL handling in authentication flow by properly encoding/decoding the callback URL in middleware and sign-in page, ensuring users are redirected to the correct page after authentication.
+- Fixed double encoding issue in callback URL handling by removing manual encoding in middleware and simplifying the sign-in page to use the callback URL directly, adding debug logging to track the authentication flow.

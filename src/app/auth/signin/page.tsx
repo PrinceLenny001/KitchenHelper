@@ -10,12 +10,31 @@ function SignInContent() {
   const [email, setEmail] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
   const searchParams = useSearchParams();
+  
+  // Get the callback URL directly - NextAuth will handle encoding
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  
+  console.log("Callback URL:", callbackUrl); // For debugging
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await signIn("email", { email, callbackUrl });
+    
+    try {
+      console.log("Submitting with callbackUrl:", callbackUrl); // For debugging
+      
+      // Pass the callback URL directly to signIn
+      const result = await signIn("email", { 
+        email, 
+        callbackUrl,
+        redirect: true
+      });
+      
+      console.log("Sign in result:", result); // For debugging
+    } catch (error) {
+      console.error("Sign in error:", error);
+      setIsLoading(false);
+    }
   };
 
   return (
