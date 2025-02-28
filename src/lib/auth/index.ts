@@ -95,10 +95,10 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async signIn({ user }) {
+    async signIn({ user, account, profile, email, credentials }) {
       try {
-        const email = user?.email;
-        if (!email) return false;
+        const userEmail = user?.email;
+        if (!userEmail) return false;
 
         /*
         // Enable this to restrict sign-ins to certain domains or allowlist
@@ -113,12 +113,30 @@ export const authOptions: NextAuthOptions = {
           }
         }
         */
-
+        
+        // Always return true to allow sign in
         return true;
       } catch (error) {
         console.error("SignIn callback error:", error);
         return false;
       }
+    },
+    async redirect({ url, baseUrl }) {
+      // Log the redirect parameters for debugging
+      console.log("Redirect callback:", { url, baseUrl });
+      
+      // If the URL starts with the base URL, allow it
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      
+      // If the URL is a relative path, prepend the base URL
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      
+      // Default to the base URL
+      return baseUrl;
     },
     async session({ session, user, token }) {
       try {

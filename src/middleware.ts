@@ -28,6 +28,7 @@ export async function middleware(request: NextRequest) {
   
   // If it's a public path or auth callback, allow access
   if (isPublicPath || isAuthCallback) {
+    console.log(`Middleware: Public path or auth callback: ${pathname}`);
     return NextResponse.next();
   }
   
@@ -37,10 +38,13 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET 
   });
   
+  console.log(`Middleware: Path: ${pathname}, Token exists: ${!!token}`);
+  
   // If there's no token and the path is not public
   if (!token) {
     // For API routes, return 401 Unauthorized
     if (isApiRoute) {
+      console.log(`Middleware: API route without token: ${pathname}`);
       return new NextResponse(
         JSON.stringify({ success: false, message: 'Authentication required' }),
         { status: 401, headers: { 'content-type': 'application/json' } }
@@ -48,13 +52,16 @@ export async function middleware(request: NextRequest) {
     }
     
     // For regular routes, redirect to signin with the callback URL
-    // Do NOT encode the pathname - NextAuth will handle this
+    console.log(`Middleware: Redirecting to signin with callback: ${pathname}`);
     const url = new URL("/auth/signin", request.url);
     url.searchParams.set("callbackUrl", pathname);
+    
+    console.log(`Middleware: Redirect URL: ${url.toString()}`);
     return NextResponse.redirect(url);
   }
   
   // If there's a token, allow access
+  console.log(`Middleware: Authenticated access to: ${pathname}`);
   return NextResponse.next();
 }
 
