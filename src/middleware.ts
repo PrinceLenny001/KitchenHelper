@@ -35,26 +35,46 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
-  // Check for session cookie directly
-  const hasSessionCookie = request.cookies.has('next-auth.session-token') || 
-                          request.cookies.has('__Secure-next-auth.session-token');
+  // Debug: Log all cookies
+  console.log("Middleware: Cookies:", Array.from(request.cookies.getAll()).map(cookie => cookie.name).join(', '));
   
-  // If there's a session cookie, try to get the token
-  if (hasSessionCookie) {
+  // Check for session cookie directly - include all possible cookie names
+  const sessionCookieNames = [
+    'next-auth.session-token',
+    '__Secure-next-auth.session-token',
+    '__Host-next-auth.session-token',
+    'next-auth.callback-url',
+    '__Secure-next-auth.callback-url',
+    'next-auth.csrf-token',
+    '__Host-next-auth.csrf-token'
+  ];
+  
+  const sessionCookies = sessionCookieNames
+    .filter(name => request.cookies.has(name))
+    .map(name => ({ name, value: request.cookies.get(name)?.value }));
+  
+  if (sessionCookies.length > 0) {
+    console.log("Middleware: Found session cookies:", sessionCookies.map(c => c.name).join(', '));
+    
     try {
       // Get the session token with proper secret
       const token = await getToken({ 
         req: request,
-        secret: process.env.NEXTAUTH_SECRET 
+        secret: process.env.NEXTAUTH_SECRET,
+        secureCookie: process.env.NODE_ENV === "production"
       });
       
       if (token) {
-        console.log(`Middleware: Authenticated access to: ${pathname} with token`);
+        console.log(`Middleware: Authenticated access to: ${pathname} with token:`, token.email);
         return NextResponse.next();
+      } else {
+        console.log("Middleware: Token validation failed");
       }
     } catch (error) {
       console.error("Error getting token:", error);
     }
+  } else {
+    console.log("Middleware: No session cookies found");
   }
   
   console.log(`Middleware: No valid session for: ${pathname}`);

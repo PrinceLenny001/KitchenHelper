@@ -6,6 +6,8 @@ console.log("NEXTAUTH_URL:", process.env.NEXTAUTH_URL);
 console.log("NODE_ENV:", process.env.NODE_ENV);
 console.log("NEXTAUTH_SECRET:", process.env.NEXTAUTH_SECRET ? "Set" : "Not set");
 console.log("AUTH_PROVIDERS:", authOptions.providers.map(p => p.id).join(", "));
+console.log("SESSION_STRATEGY:", authOptions.session?.strategy);
+console.log("COOKIES_CONFIG:", JSON.stringify(authOptions.cookies || "Not set"));
 
 // Use the authOptions directly without overriding
 const handler = NextAuth(authOptions);

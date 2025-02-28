@@ -78,3 +78,4 @@
 - Fixed authentication redirection by adding comprehensive logging throughout the auth flow, implementing a proper redirect callback in NextAuth, and ensuring consistent URL handling between middleware and NextAuth.
 - Fixed email verification flow by adding special handling for verification tokens in middleware, implementing detailed redirect logic for email verification callbacks, and adding error handling to the sign-in page.
 - Fixed authentication session handling by directly checking for session cookies in middleware, simplifying the NextAuth configuration, and ensuring proper redirection after email verification.
+- Fixed session cookie recognition by enhancing middleware with detailed cookie logging, adding explicit cookie configuration in NextAuth options, and enabling debug mode for troubleshooting.
