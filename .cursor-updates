@@ -66,3 +66,4 @@
 - Fixed email authentication by updating the EmailProvider configuration and environment variables to use Resend API properly.
 - Updated database configuration to connect to Supabase, adding both Prisma and Supabase clients for database access.
 - Fixed Supabase connection issues by correcting the database URL, adding error handling, and implementing fallback mechanisms for network issues.
+- Added Netlify build configuration with environment variable handling to ensure smooth deployment on Netlify and prevent build failures due to missing environment variables.

@@ -1,0 +1,17 @@
+[build]
+  command = "npm run netlify-build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_PUBLIC_SUPABASE_URL = "https://cxlnxxfacrakohbwejfs.supabase.co"
+  NEXT_PUBLIC_NETLIFY = "true"
+  # Note: The actual ANON_KEY should be set in the Netlify UI for security reasons
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Handle redirects for client-side routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 

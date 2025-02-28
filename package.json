@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "vercel-build": "prisma generate && next build",
+    "netlify-build": "cross-env NEXT_PUBLIC_NETLIFY=true prisma generate && next build",
     "postinstall": "prisma generate",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
@@ -77,6 +78,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
     "postcss": "^8",
     "prisma": "^6.0.1",
     "storybook": "^8.5.3",
