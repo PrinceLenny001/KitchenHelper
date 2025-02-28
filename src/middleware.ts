@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
   
   // Define public paths that don't require authentication
   const publicPaths = [
@@ -26,9 +26,12 @@ export async function middleware(request: NextRequest) {
   // Special handling for auth callback routes
   const isAuthCallback = pathname.startsWith('/api/auth/callback');
   
-  // If it's a public path or auth callback, allow access
-  if (isPublicPath || isAuthCallback) {
-    console.log(`Middleware: Public path or auth callback: ${pathname}`);
+  // Special handling for verification token in URL
+  const hasVerificationToken = search.includes('token=');
+  
+  // If it's a public path, auth callback, or has a verification token, allow access
+  if (isPublicPath || isAuthCallback || hasVerificationToken) {
+    console.log(`Middleware: Allowing access to: ${pathname}${search}`);
     return NextResponse.next();
   }
   
@@ -38,7 +41,7 @@ export async function middleware(request: NextRequest) {
     secret: process.env.NEXTAUTH_SECRET 
   });
   
-  console.log(`Middleware: Path: ${pathname}, Token exists: ${!!token}`);
+  console.log(`Middleware: Path: ${pathname}${search}, Token exists: ${!!token}`);
   
   // If there's no token and the path is not public
   if (!token) {

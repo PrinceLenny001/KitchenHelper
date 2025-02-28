@@ -123,19 +123,45 @@ export const authOptions: NextAuthOptions = {
     },
     async redirect({ url, baseUrl }) {
       // Log the redirect parameters for debugging
-      console.log("Redirect callback:", { url, baseUrl });
+      console.log("NextAuth Redirect callback:", { url, baseUrl });
+      
+      // Handle callback URLs for email verification
+      if (url.includes('/api/auth/callback/email')) {
+        const callbackUrlParam = new URL(url).searchParams.get('callbackUrl');
+        if (callbackUrlParam) {
+          const decodedCallbackUrl = decodeURIComponent(callbackUrlParam);
+          console.log("Found callbackUrl in email verification:", decodedCallbackUrl);
+          
+          // If it's a relative URL, prepend the base URL
+          if (decodedCallbackUrl.startsWith('/')) {
+            const fullUrl = `${baseUrl}${decodedCallbackUrl}`;
+            console.log("Redirecting to:", fullUrl);
+            return fullUrl;
+          }
+          
+          // If it's an absolute URL on the same origin, use it directly
+          if (decodedCallbackUrl.startsWith(baseUrl)) {
+            console.log("Redirecting to:", decodedCallbackUrl);
+            return decodedCallbackUrl;
+          }
+        }
+      }
       
       // If the URL starts with the base URL, allow it
       if (url.startsWith(baseUrl)) {
+        console.log("Redirecting to same-origin URL:", url);
         return url;
       }
       
       // If the URL is a relative path, prepend the base URL
       if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
+        const fullUrl = `${baseUrl}${url}`;
+        console.log("Redirecting to relative URL:", fullUrl);
+        return fullUrl;
       }
       
       // Default to the base URL
+      console.log("Redirecting to default URL:", baseUrl);
       return baseUrl;
     },
     async session({ session, user, token }) {

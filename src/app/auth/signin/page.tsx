@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Mail } from "lucide-react";
@@ -9,30 +9,50 @@ import Link from "next/link";
 function SignInContent() {
   const [email, setEmail] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
   const searchParams = useSearchParams();
   
-  // Get the callback URL directly - NextAuth will handle encoding
+  // Get the callback URL directly
   const callbackUrl = searchParams.get("callbackUrl") || "/";
   
-  console.log("Callback URL:", callbackUrl); // For debugging
+  useEffect(() => {
+    console.log("Sign-in page loaded with callbackUrl:", callbackUrl);
+    
+    // Check for error in URL
+    const errorParam = searchParams.get("error");
+    if (errorParam) {
+      setError(`Authentication error: ${errorParam}`);
+      console.error("Authentication error:", errorParam);
+    }
+  }, [callbackUrl, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError("");
     
     try {
-      console.log("Submitting with callbackUrl:", callbackUrl); // For debugging
+      console.log("Submitting with callbackUrl:", callbackUrl);
       
       // Pass the callback URL directly to signIn
       const result = await signIn("email", { 
         email, 
         callbackUrl,
-        redirect: true
+        redirect: false // Handle redirect manually for debugging
       });
       
-      console.log("Sign in result:", result); // For debugging
+      console.log("Sign in result:", result);
+      
+      if (result?.error) {
+        setError(`Error: ${result.error}`);
+        setIsLoading(false);
+      } else if (result?.url) {
+        // Manually redirect to the verification page
+        window.location.href = "/auth/verify";
+      }
     } catch (error) {
       console.error("Sign in error:", error);
+      setError(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
       setIsLoading(false);
     }
   };
@@ -57,6 +77,11 @@ function SignInContent() {
           <p className="mt-3 text-neutral-600 dark:text-neutral-300">
             Enter your email to sign in or create an account
           </p>
+          {error && (
+            <p className="mt-2 text-red-500 dark:text-red-400 text-sm">
+              {error}
+            </p>
+          )}
         </div>
 
         <div className="rounded-2xl bg-white dark:bg-neutral-800/50 p-8 shadow-xl">
