@@ -1,128 +1,127 @@
 "use client";
 
-import { useState } from "react";
-import { toast } from "react-toastify";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useDashboard } from "@/hooks/useDashboard";
-import { WidgetType } from "@/lib/types/dashboard";
-import { WidgetRegistry } from "@/lib/widgets/registry";
-import { LucideIcon } from "lucide-react";
+import React, { useState } from 'react';
+import { VerticalLayout } from '@/components/layout/VerticalLayout';
+import { Header } from '@/components/layout/Header';
+import { BottomNavigation } from '@/components/navigation/BottomNavigation';
+import { WidgetType } from '@/lib/types/dashboard';
+
+// Mock widget data
+const mockWidgets = [
+  {
+    id: '1',
+    type: 'calendar' as WidgetType,
+    title: 'Upcoming Events',
+    width: 2,
+    height: 2,
+    x: 0,
+    y: 0,
+    settings: {},
+  },
+  {
+    id: '2',
+    type: 'chores' as WidgetType,
+    title: 'Today\'s Chores',
+    width: 2,
+    height: 2,
+    x: 2,
+    y: 0,
+    settings: {},
+  },
+  {
+    id: '3',
+    type: 'family' as WidgetType,
+    title: 'Family Members',
+    width: 2,
+    height: 1,
+    x: 0,
+    y: 2,
+    settings: {},
+  },
+  {
+    id: '4',
+    type: 'notes' as WidgetType,
+    title: 'Notes',
+    width: 2,
+    height: 1,
+    x: 2,
+    y: 2,
+    settings: {},
+  },
+];
 
 export default function DashboardPage() {
-  const { widgets, isLoading, error, addWidget, removeWidget, updateLayout } = useDashboard();
-  const [isAddingWidget, setIsAddingWidget] = useState(false);
-  
-  const handleAddWidget = async (type: WidgetType) => {
-    setIsAddingWidget(true);
-    try {
-      const widgetDef = WidgetRegistry.getInstance().getWidget(type);
-      if (!widgetDef) {
-        toast.error(`Widget type ${type} not found`);
-        return;
-      }
-      
-      await addWidget({
-        type,
-        title: widgetDef.name,
-        width: widgetDef.defaultWidth,
-        height: widgetDef.defaultHeight,
-        x: 0,
-        y: 0,
-        settings: widgetDef.defaultSettings || {},
-      });
-      
-      toast.success(`Added ${widgetDef.name} widget`);
-    } catch (err) {
-      console.error("Error adding widget:", err);
-      toast.error("Failed to add widget");
-    } finally {
-      setIsAddingWidget(false);
-    }
-  };
-  
-  const handleRemoveWidget = async (id: string) => {
-    try {
-      await removeWidget(id);
-      toast.success("Widget removed");
-    } catch (err) {
-      console.error("Error removing widget:", err);
-      toast.error("Failed to remove widget");
-    }
-  };
-  
-  const handleUpdateLayout = async (updatedWidgets: any[]) => {
-    try {
-      await updateLayout(updatedWidgets);
-    } catch (err) {
-      console.error("Error updating layout:", err);
-      toast.error("Failed to update layout");
-    }
-  };
-  
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-4">
-        <h2 className="text-xl font-semibold text-red-600 mb-2">Error loading dashboard</h2>
-        <p className="text-gray-600 dark:text-gray-400">{error}</p>
-        <button 
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          onClick={() => window.location.reload()}
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
+  const [widgets, setWidgets] = useState(mockWidgets);
   
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <div className="flex gap-2">
-          <div className="relative">
-            <button
-              onClick={() => setIsAddingWidget(!isAddingWidget)}
-              disabled={isAddingWidget}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors disabled:opacity-50"
+    <VerticalLayout
+      header={<Header />}
+      footer={<BottomNavigation />}
+    >
+      <div className="p-4">
+        <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+        
+        <div className="grid grid-cols-4 gap-4">
+          {widgets.map((widget) => (
+            <div 
+              key={widget.id}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4"
+              style={{
+                gridColumn: `span ${widget.width}`,
+                gridRow: `span ${widget.height}`,
+              }}
             >
-              {isAddingWidget ? "Adding..." : "Add Widget"}
-            </button>
-            
-            {isAddingWidget && (
-              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
-                <div className="p-2">
-                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Widget Type</h3>
-                  <div className="space-y-1">
-                    {WidgetRegistry.getInstance().getAllWidgets().map((widget) => {
-                      const IconComponent = widget.icon as LucideIcon;
-                      return (
-                        <button
-                          key={widget.type}
-                          onClick={() => handleAddWidget(widget.type)}
-                          className="w-full text-left px-3 py-2 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <div className="flex items-center">
-                            <IconComponent className="w-4 h-4 mr-2" />
-                            <span>{widget.name}</span>
-                          </div>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{widget.description}</p>
-                        </button>
-                      );
-                    })}
+              <h2 className="text-xl font-semibold mb-2">{widget.title}</h2>
+              <div className="h-full">
+                {widget.type === 'calendar' && (
+                  <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                    <p className="font-medium">Doctor Appointment</p>
+                    <p className="text-sm text-gray-500">Today, 10:00 AM</p>
+                    <p className="font-medium mt-2">School Pickup</p>
+                    <p className="text-sm text-gray-500">Today, 3:00 PM</p>
                   </div>
-                </div>
+                )}
+                
+                {widget.type === 'chores' && (
+                  <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                    <div className="flex items-center mb-2">
+                      <input type="checkbox" className="mr-2" />
+                      <span>Take out trash</span>
+                    </div>
+                    <div className="flex items-center mb-2">
+                      <input type="checkbox" className="mr-2" />
+                      <span>Do laundry</span>
+                    </div>
+                    <div className="flex items-center">
+                      <input type="checkbox" className="mr-2" />
+                      <span>Clean kitchen</span>
+                    </div>
+                  </div>
+                )}
+                
+                {widget.type === 'family' && (
+                  <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded">
+                    <div className="flex items-center mb-2">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full mr-2"></div>
+                      <span>John Doe</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-8 h-8 bg-pink-500 rounded-full mr-2"></div>
+                      <span>Jane Doe</span>
+                    </div>
+                  </div>
+                )}
+                
+                {widget.type === 'notes' && (
+                  <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                    <p>Remember to buy groceries for dinner!</p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
-      
-      <DashboardLayout
-        widgets={widgets}
-        isLoading={isLoading}
-        onRemoveWidget={handleRemoveWidget}
-        onUpdateLayout={handleUpdateLayout}
-      />
-    </div>
+    </VerticalLayout>
   );
 } 

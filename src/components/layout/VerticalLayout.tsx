@@ -1,53 +1,19 @@
 "use client";
 
-import React from 'react';
-import { usePreferences } from '@/lib/context/PreferencesContext';
+import React, { ReactNode } from 'react';
 
 interface VerticalLayoutProps {
-  children: React.ReactNode;
-  header?: React.ReactNode;
-  footer?: React.ReactNode;
-  sidebar?: React.ReactNode;
+  header?: ReactNode;
+  children: ReactNode;
+  footer?: ReactNode;
 }
 
-export const VerticalLayout: React.FC<VerticalLayoutProps> = ({
-  children,
-  header,
-  footer,
-  sidebar,
-}) => {
-  const { preferences } = usePreferences();
-  
+export function VerticalLayout({ header, children, footer }: VerticalLayoutProps) {
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-background">
-      {/* Header */}
-      {header && (
-        <header className="flex-shrink-0 h-24 border-b border-border">
-          {header}
-        </header>
-      )}
-      
-      {/* Main content area */}
-      <main className="flex flex-1 overflow-hidden">
-        {/* Sidebar (optional) */}
-        {sidebar && (
-          <aside className="w-80 border-r border-border overflow-y-auto">
-            {sidebar}
-          </aside>
-        )}
-        
-        {/* Main content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {children}
-        </div>
-      </main>
-      
-      {/* Footer with navigation */}
-      {footer && (
-        <footer className="flex-shrink-0 h-24 border-t border-border">
-          {footer}
-        </footer>
-      )}
+    <div className="flex flex-col min-h-screen">
+      {header && <div className="sticky top-0 z-10">{header}</div>}
+      <main className="flex-grow">{children}</main>
+      {footer && <div className="sticky bottom-0 z-10">{footer}</div>}
     </div>
   );
-}; 
+} 
